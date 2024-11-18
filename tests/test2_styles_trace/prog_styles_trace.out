@@ -1,0 +1,11 @@
+Call: proposed(hastings,cynthia)
+Call: write(hastings)
+Fail: accepted(cynthia,hastings)
+Redo: proposed(lawrence,cynthia)
+Call: write(lawrence)
+Call: accepted(cynthia,lawrence)
+
+hastings
+lawrence
+
+X = lawrence, Y = cynthia

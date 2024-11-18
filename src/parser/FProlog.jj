@@ -1,0 +1,119 @@
+PARSER_BEGIN(FProlog)
+
+package parser;
+
+import java.util.ArrayList;
+import parser.ast.*;
+
+public class FProlog {
+  public static void main(String[] args) throws Exception {
+    FPProg result = new FProlog(new java.io.StringReader(args[0])).P();
+    System.out.println(result);
+  }
+}
+
+PARSER_END(FProlog)
+
+SKIP : { " " | "\t" | "\n" | "\r" }
+TOKEN : {<ATOM : <MIN> (<MIN> | <MAJ> | <DIG> | "_" )* > }
+TOKEN : {<VAR  : ("_" | <MAJ>) (<MIN> | <MAJ> | <DIG> | "_")* > }
+TOKEN : {<MIN : ["a"-"z"] > }
+TOKEN : {<MAJ : ["A"-"Z"] > }
+TOKEN : {<DIG : ["0"-"9"] > }
+TOKEN : {<LPAREN : "("    > }
+TOKEN : {<RPAREN : ")"    > }
+TOKEN : {<COMMA  : ","    > }
+TOKEN : {<STOP   : "."    > }
+TOKEN : {<IMPL   : ":-"   > }
+TOKEN : {<PROMPT : "?-"   > }
+TOKEN : {<BANG   : "!"    > }
+TOKEN : {<NOT    : "\\+"  > }
+
+// A head is an atom with an arbitrary number of atom/variable parameters.
+FPHead Head() :
+  {Token ta; FPTerm tp, ti; ArrayList<FPTerm> ts = new ArrayList<FPTerm>(); }
+  {
+    ta = <ATOM>
+    (
+      <LPAREN>
+      tp = Term() { ts.add(tp); }
+      ( <COMMA> ti = Term() {ts.add(ti); } )*
+      <RPAREN>
+    )*
+    { return new FPHead(ta.image, ts); }
+  }
+
+FPTerm Term() :
+  {
+    Token ta;
+    FPTerm t1, ti = null;
+    ArrayList<FPTerm> ts = new ArrayList<FPTerm>();
+    FPTerm t; 
+  }{
+    (
+      (
+        ta = <ATOM>
+        (
+          <LPAREN>
+          t1 = Term() { ts.add(t1); }
+          (<COMMA> ti = Term() { ts.add(ti); })*
+          <RPAREN>
+        )?
+        {
+          if (ts.size() == 0) {
+            t = new FPTerm(TKind.CONST, ta.image);
+          } {
+            t = new FPTerm(TKind.CTERM, ta.image, ts);
+          }
+        }
+      )
+      |
+      (
+        ta = <VAR>
+        { t = new FPTerm(TKind.IDENT, ta.image); }
+      )
+    )
+    { return t; }
+  }
+
+// A body is a comma-separated sequence of terms.
+FPBody Body() :
+  { FPTerm t, ti; ArrayList<FPTerm> ts = new ArrayList<FPTerm>(); }
+  {
+    t = Term() { ts.add(t); }
+    (<COMMA> ti = Term() { ts.add(ti); } )*
+    { return new FPBody(ts); }
+  }
+
+FPBody Query() :
+  { FPBody b; }
+  { 
+    <PROMPT>
+    (
+      (b = Body() { return b; })? // Request alternative when body is empty.
+      { return new FPBody(new ArrayList<FPTerm>()); }
+    )
+  }
+
+// A clause is headless (a query), bodiless (a fact), or neither (a rule).
+FPClause Clause() :
+  {FPHead h = null; FPBody b = null; }
+  { 
+    (
+      ( h = Head() (<IMPL> b = Body())? ) | ( b = Query() )
+    ) 
+    <STOP> 
+    { return new FPClause(h, b); } 
+  } 
+
+// A program is a sequence of facts, rules, and queries.
+FPProg P() : 
+  { FPProg p = new FPProg(); FPClause t1; FPClause ti; }
+  { 
+     t1 = Clause()
+     { p.add(t1); }
+     (ti = Clause() { p.add(ti); })*
+     <EOF>
+     { return p; } 
+  }
+
