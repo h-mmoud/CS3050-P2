@@ -15,14 +15,15 @@ public class Unification {
      * modified.
      */
     public static boolean unify(FPTerm x, FPTerm y, Map<String, FPTerm> theta) {
-
-    
        if (theta == null) {
            return false;
        }
 
+       System.out.println("Unifying " + x + " with " + y);
+       System.out.println("Theta: " + theta);
+
        return switch (x) {
-        case FPTerm t when t.equals(y) -> true;
+        case FPTerm t when x.equals(y) -> true; // why wouldnt this be x.equals(y) ?
 
         case FPTerm t when t.kind == TKind.IDENT -> unifyVar(t, y, theta);
 
@@ -40,36 +41,66 @@ public class Unification {
 
         default -> y.kind == TKind.IDENT ? unifyVar(y, x, theta) : false;
        };
-       
-    //    else if (x.equals(y)) {
-    //        return true;
-    //    } else if (x instanceof FPVar) {
-    //        return unifyVar((FPVar) x, y, theta);
-    //    } else if (y instanceof FPVar) {
-    //        return unifyVar((FPVar) y, x, theta);
-    //    } else if (x instanceof FPFunc && y instanceof FPFunc) {
-    //        FPFunc fx = (FPFunc) x;
-    //        FPFunc fy = (FPFunc) y;
-    //        if (fx.name.equals(fy.name) && fx.args.size() == fy.args.size()) {
-    //            for (int i = 0; i < fx.args.size(); i++) {
-    //                if (!unify(fx.args.get(i), fy.args.get(i), theta)) {
-    //                    return false;
-    //                }
-    //            }
-    //            return true;
-    //        }
-    //    }
-    //    return false;
     }
 
     private static boolean unifyVar(FPTerm var, FPTerm x, Map<String, FPTerm> theta) {
-        if (theta.containsKey(var.name)) {
-            return unify(theta.get(var.name), x, theta);
-        } else if (x.kind == TKind.IDENT && theta.containsKey(x.name)) {
-            return unify(var, theta.get(x.name), theta);
+        System.out.println("Unifying variable " + var + " with " + x);
+
+        return switch (x) {
+            case FPTerm t when theta.containsKey(var.name) -> unify(theta.get(var.name), t, theta);
+
+            case FPTerm t when t.kind == TKind.IDENT && theta.containsKey(t.name) -> unify(var, theta.get(t.name), theta);
+
+            // case FPTerm t when !occursCheck(var, t, theta) -> true;
+
+            default -> {
+                if (occursCheck(var, x, theta)){
+                    yield false;
+                }
+                theta.put(var.name, x);
+                System.out.println("Theta: " + theta);
+
+                yield true;
+            }
+        };
+    }
+
+    private static boolean occursCheck(FPTerm var, FPTerm term, Map<String, FPTerm> theta) {
+        if (term.kind == TKind.IDENT) {
+            System.out.println("Checking occurs check for " + var + " and " + term + " in " + theta);
+
+            if (theta.containsKey(term.name)) {
+                // If term is bound, check the binding
+                System.out.println("Term is bound");
+                return occursCheck(var, theta.get(term.name), theta);
+            } else {
+                // If term is unbound, only fails occurs check if var and term are different
+                System.out.println("Checking if " + var + " is equal to " + term + ": " + var.equals(term));
+                return var.equals(term);
+            }
+        } else if (term.kind == TKind.CONST) {
+            return false;
+        } else if (term.kind == TKind.CTERM) {
+            for (FPTerm arg : term.args) {
+                if (occursCheck(var, arg, theta)) {
+                    return true;
+                }
+            }
+            return false;
         } else {
-            theta.put(var.name, x);
-            return true;
+            return false;
         }
+
+
+        // if (term.kind == TKind.IDENT || term.kind == TKind.CONST) {
+        //     return var.name.equals(term.name);
+        // } else if (term.kind == TKind.CTERM) {
+        //     for (FPTerm arg : term.args) {
+        //         if (occursCheck(var, arg)) {
+        //             return true;
+        //         }
+        //     }
+        // }
+        // return false;
     }
 }

@@ -2,14 +2,10 @@ package interpreter;
 
 import java.io.FileReader;
 import java.io.StringReader;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Scanner;
 
 import parser.FProlog;
 import parser.ast.FPProg;
-import parser.ast.FPTerm;
-import parser.ast.TKind;
 
 public class Main {
     public static void main(String[] args) {
@@ -43,28 +39,4 @@ public class Main {
       System.err.println(e.toString());
     }
   }
-  
-    private static void testUnification() {
-        // Test case 1: Identical terms
-        FPTerm x1 = new FPTerm(TKind.IDENT, "x");
-        FPTerm x2 = new FPTerm(TKind.IDENT, "x");
-        Map<String, FPTerm> theta1 = new HashMap<>();
-        System.out.println("Test 1 - Identical terms: " + Unification.unify(x1, x2, theta1));
-        
-        // Test case 2: Variable binding
-        FPTerm var = new FPTerm(TKind.IDENT, "X");
-        FPTerm val = new FPTerm(TKind.IDENT, "a");
-        Map<String, FPTerm> theta2 = new HashMap<>();
-        System.out.println("Test 2 - Variable binding: " + Unification.unify(var, val, theta2));
-        System.out.println("Binding: X = " + theta2.get("X"));
-        
-        // Test case 3: Complex terms
-        // FPTerm f1 = new FPTerm(TKind.CTERM, "f", 
-        //     List.of(new FPTerm(TKind.IDENT, "X")));
-        // FPTerm f2 = new FPTerm(TKind.CTERM, "f", 
-        //     List.of(new FPTerm(TKind.IDENT, "a")));
-        // Map<String, FPTerm> theta3 = new HashMap<>();
-        // System.out.println("Test 3 - Complex terms: " + Unification.unify(f1, f2, theta3));
-        // System.out.println("Binding: X = " + theta3.get("X"));
-    }
 }

@@ -1,6 +1,7 @@
 package parser.ast;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 import parser.ast.TKind;
 
@@ -53,4 +54,25 @@ public class FPTerm {
       return name;
     }
   }
+
+  // Equality for FPTerms
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        FPTerm other = (FPTerm) obj;
+        return kind == other.kind &&
+               Objects.equals(name, other.name) &&
+               Objects.equals(args, other.args);
+    }
+
+    // Hashcode for FPTerms
+    @Override
+    public int hashCode() {
+        return Objects.hash(kind, name, args);
+    }
 }
