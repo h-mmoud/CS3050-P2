@@ -1,16 +1,14 @@
 package interpreter;
 
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.List;
-import java.util.ArrayList;
 
-import parser.ast.FPProg;
 import parser.ast.FPClause;
 
 public class KnowledgeBase {
-    private final Map<String, List<FPClause>> knowledgeBase;
+    private final Map<String, ArrayList<FPClause>> knowledgeBase;
 
     public KnowledgeBase() {
         this.knowledgeBase = new HashMap<>();
@@ -26,14 +24,14 @@ public class KnowledgeBase {
 
     }
 
-    public List<FPClause> getClauses(String functor) {
+    public ArrayList<FPClause> getClauses(String functor) {
         return knowledgeBase.getOrDefault(functor, new ArrayList<>());
     }
 
     public String toString() {
         System.out.println("KnowledgeBase.toString()");
         StringBuilder sb = new StringBuilder();
-        for (List<FPClause> clauses : knowledgeBase.values()) {
+        for (ArrayList<FPClause> clauses : knowledgeBase.values()) {
             for (FPClause clause : clauses) {
                 sb.append(clause.head).append(".\n");
             }

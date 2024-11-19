@@ -51,16 +51,14 @@ javac -d bin -cp bin src/parser/*.java
 echo "Compiling interpreter package..."
 javac -d bin -cp bin src/interpreter/*.java
 
-# Finally compile tests
-echo "Compiling tests..."
-javac -d bin -cp "bin:lib/*" src/test/interpreter/*.java
+# # Finally compile tests
+# echo "Compiling tests..."
+# javac -d bin -cp "bin:lib/*" src/test/interpreter/*.java
 
 # # List compiled files for verification
 # echo "Compiled files in bin:"
 # find bin -name "*.class"
 
 # Run tests
-java -jar lib/junit-platform-console-standalone.jar \
-    --class-path "bin:lib/*" \
-    --scan-class-path 
+java -cp bin interpreter.Main "$@"
     # --select-package interpreter

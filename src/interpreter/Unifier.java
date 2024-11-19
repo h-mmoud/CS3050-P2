@@ -1,12 +1,21 @@
 package interpreter;
 
 import java.util.Map;
+import java.util.HashMap;
 
 import parser.ast.FPTerm;
 import parser.ast.TKind;
 
-public class Unification {
+public class Unifier {
+    private final Map<String, FPTerm> theta;
 
+    public Unifier(Map<String, FPTerm> theta) {
+        this.theta = theta;
+    }
+
+    public Unifier() {
+        this.theta = new HashMap<String, FPTerm>();
+    }
 
     /*
      * Unify two terms x and y with respect to the substitution theta. If the 
@@ -51,20 +60,16 @@ public class Unification {
 
             case FPTerm t when t.kind == TKind.IDENT && theta.containsKey(t.name) -> unify(var, theta.get(t.name), theta);
 
-            // case FPTerm t when !occursCheck(var, t, theta) -> true;
+            case FPTerm t when occursCheck(var, t, theta) -> false;
 
             default -> {
-                if (occursCheck(var, x, theta)){
-                    yield false;
-                }
                 theta.put(var.name, x);
-                System.out.println("Theta: " + theta);
-
                 yield true;
             }
         };
     }
 
+    // TODO: Implement occurs check with switch statements
     private static boolean occursCheck(FPTerm var, FPTerm term, Map<String, FPTerm> theta) {
         if (term.kind == TKind.IDENT) {
             System.out.println("Checking occurs check for " + var + " and " + term + " in " + theta);
@@ -90,17 +95,9 @@ public class Unification {
         } else {
             return false;
         }
+    }
 
-
-        // if (term.kind == TKind.IDENT || term.kind == TKind.CONST) {
-        //     return var.name.equals(term.name);
-        // } else if (term.kind == TKind.CTERM) {
-        //     for (FPTerm arg : term.args) {
-        //         if (occursCheck(var, arg)) {
-        //             return true;
-        //         }
-        //     }
-        // }
-        // return false;
+    public Map<String, FPTerm> getTheta() {
+        return theta;
     }
 }

@@ -22,7 +22,9 @@ public class UnificationTest {
     @BeforeEach
     public void setUp() {
         System.out.println("===================================");
-        System.out.println("UnificationTest\n");
+        System.out.println("UnifierTest\n");
+
+        Unifier unifier = new Unifier();
     }
 
     @AfterEach
@@ -35,11 +37,11 @@ public class UnificationTest {
      */
     @Test
     public void testUnifyIdenticalTerms() {
-        System.out.println("UnificationTest.testUnifyIdenticalTerms()");
+        System.out.println("UnifierTest.testUnifyIdenticalTerms()");
         FPTerm term1 = new FPTerm(TKind.IDENT, "X");
         FPTerm term2 = new FPTerm(TKind.IDENT, "X");
         Map<String, FPTerm> theta = new HashMap<>();
-        assertTrue(Unification.unify(term1, term2, theta));
+        assertTrue(Unifier.unify(term1, term2, theta));
     }
 
     /*
@@ -48,11 +50,11 @@ public class UnificationTest {
      */
     @Test
     public void testUnifyDifferentVariableTerms() {
-        System.out.println("UnificationTest.testUnifyDifferentIdentTerms()");
+        System.out.println("UnifierTest.testUnifyDifferentIdentTerms()");
         FPTerm term1 = new FPTerm(TKind.IDENT, "X");
         FPTerm term2 = new FPTerm(TKind.IDENT, "Y");
         Map<String, FPTerm> theta = new HashMap<>();
-        assertTrue(Unification.unify(term1, term2, theta));
+        assertTrue(Unifier.unify(term1, term2, theta));
         assertEquals(term2, theta.get("X"));
     }
 
@@ -62,11 +64,11 @@ public class UnificationTest {
      */
     @Test
     public void testUnifyComplexTerms() {
-        System.out.println("UnificationTest.testUnifyComplexTerms()");
+        System.out.println("UnifierTest.testUnifyComplexTerms()");
         FPTerm term1 = new FPTerm(TKind.CTERM, "f", new ArrayList<>(List.of(new FPTerm(TKind.IDENT, "X"))));
         FPTerm term2 = new FPTerm(TKind.CTERM, "f", new ArrayList<>(List.of(new FPTerm(TKind.IDENT, "Y"))));
         Map<String, FPTerm> theta = new HashMap<>();
-        assertTrue(Unification.unify(term1, term2, theta));
+        assertTrue(Unifier.unify(term1, term2, theta));
         // assertEquals(new FPTerm(TKind.IDENT, "y"), theta.get("x"));
     }
 
@@ -76,11 +78,11 @@ public class UnificationTest {
      */
     @Test
     public void testUnifyFailDifferentFunctions() {
-        System.out.println("UnificationTest.testUnifyFailDifferentFunctions()");
+        System.out.println("UnifierTest.testUnifyFailDifferentFunctions()");
         FPTerm term1 = new FPTerm(TKind.CTERM, "f", new ArrayList<>(List.of(new FPTerm(TKind.IDENT, "x"))));
         FPTerm term2 = new FPTerm(TKind.CTERM, "g", new ArrayList<>(List.of(new FPTerm(TKind.IDENT, "x"))));
         Map<String, FPTerm> theta = new HashMap<>();
-        assertFalse(Unification.unify(term1, term2, theta));
+        assertFalse(Unifier.unify(term1, term2, theta));
     }
 
     /*
@@ -89,11 +91,11 @@ public class UnificationTest {
      */
     @Test
     public void testUnifyFailDifferentArity() {
-        System.out.println("UnificationTest.testUnifyFailDifferentArity()");
+        System.out.println("UnifierTest.testUnifyFailDifferentArity()");
         FPTerm term1 = new FPTerm(TKind.CTERM, "f", new ArrayList<>(List.of(new FPTerm(TKind.IDENT, "x"))));
         FPTerm term2 = new FPTerm(TKind.CTERM, "f", new ArrayList<>(List.of(new FPTerm(TKind.IDENT, "x"), new FPTerm(TKind.IDENT, "y"))));
         Map<String, FPTerm> theta = new HashMap<>();
-        assertFalse(Unification.unify(term1, term2, theta));
+        assertFalse(Unifier.unify(term1, term2, theta));
     }
 
     /*
@@ -102,21 +104,21 @@ public class UnificationTest {
      */
     @Test
     public void testUnifyConstantAndVariable() {
-        System.out.println("UnificationTest.testUnifyConstantAndVariable()");
+        System.out.println("UnifierTest.testUnifyConstantAndVariable()");
         FPTerm term1 = new FPTerm(TKind.CONST, "a");
         FPTerm term2 = new FPTerm(TKind.IDENT, "X");
         Map<String, FPTerm> theta = new HashMap<>();
-        assertTrue(Unification.unify(term1, term2, theta));
+        assertTrue(Unifier.unify(term1, term2, theta));
         assertEquals(term1, theta.get("X"));
     }
 
     @Test
     public void testOccursCheck() {
-        System.out.println("UnificationTest.testOccursCheck()");
+        System.out.println("UnifierTest.testOccursCheck()");
         FPTerm term1 = new FPTerm(TKind.IDENT, "X");
         FPTerm term2 = new FPTerm(TKind.CTERM, "f", new ArrayList<>(List.of(new FPTerm(TKind.IDENT, "X"))));
         Map<String, FPTerm> theta = new HashMap<>();
-        assertFalse(Unification.unify(term1, term2, theta));
+        assertFalse(Unifier.unify(term1, term2, theta));
     }
 
     /*
@@ -124,12 +126,12 @@ public class UnificationTest {
      */
     @Test
     public void testUnifyWithExistingSubstitutions() {
-        System.out.println("UnificationTest.testUnifyWithExistingSubstitutions()");
+        System.out.println("UnifierTest.testUnifyWithExistingSubstitutions()");
         FPTerm term1 = new FPTerm(TKind.IDENT, "X");
         FPTerm term2 = new FPTerm(TKind.IDENT, "Y");
         Map<String, FPTerm> theta = new HashMap<>();
         theta.put("Y", new FPTerm(TKind.CONST, "a"));
-        assertTrue(Unification.unify(term1, term2, theta));
+        assertTrue(Unifier.unify(term1, term2, theta));
         assertEquals(new FPTerm(TKind.CONST, "a"), theta.get("X"));
         assertEquals(new FPTerm(TKind.CONST, "a"), theta.get("Y"));
     }
@@ -140,7 +142,7 @@ public class UnificationTest {
      */
     @Test
     public void testUnifyFunctionsWithDifferentNames() {
-        System.out.println("UnificationTest.testUnifyFunctionsWithDifferentNames()");
+        System.out.println("UnifierTest.testUnifyFunctionsWithDifferentNames()");
         FPTerm term1 = new FPTerm(TKind.CTERM, "f", new ArrayList<>(List.of(
             new FPTerm(TKind.CONST, "a")
         )));
@@ -148,7 +150,7 @@ public class UnificationTest {
             new FPTerm(TKind.CONST, "a")
         )));
         Map<String, FPTerm> theta = new HashMap<>();
-        assertFalse(Unification.unify(term1, term2, theta));
+        assertFalse(Unifier.unify(term1, term2, theta));
     }
 
 
@@ -158,8 +160,8 @@ public class UnificationTest {
      * be updated
      */
     @Test
-    public void testNestedUnification() {
-        System.out.println("UnificationTest.testNestedUnification()");
+    public void testNestedUnifier() {
+        System.out.println("UnifierTest.testNestedUnifier()");
         // Term f(g(X), Y)
         FPTerm term1 = new FPTerm(TKind.CTERM, "f", new ArrayList<>(List.of(
             new FPTerm(TKind.CTERM, "g", new ArrayList<>(List.of(new FPTerm(TKind.IDENT, "X")))),
@@ -171,7 +173,7 @@ public class UnificationTest {
             new FPTerm(TKind.CTERM, "h", new ArrayList<>(List.of(new FPTerm(TKind.IDENT, "W"))))
         )));
         Map<String, FPTerm> theta = new HashMap<>();
-        assertTrue(Unification.unify(term1, term2, theta));
+        assertTrue(Unifier.unify(term1, term2, theta));
         // Check the substitutions made
         assertEquals(new FPTerm(TKind.CTERM, "g", new ArrayList<>(List.of(new FPTerm(TKind.IDENT, "X")))), theta.get("Z"));
         assertEquals(new FPTerm(TKind.CTERM, "h", new ArrayList<>(List.of(new FPTerm(TKind.IDENT, "W")))), theta.get("Y"));

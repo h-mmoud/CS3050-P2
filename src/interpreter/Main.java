@@ -29,10 +29,13 @@ public class Main {
         for (int i = 0; i < ast.cs.size(); i++) {
             kb.addClause(ast.cs.get(i));
 
-//            System.out.println("added "+ast.cs.get(i).head.name+" to kb");
         }
 
         System.out.println(kb.toString());
+
+        // create new resolver
+        Resolver r = new Resolver(ast.cs.get(1), kb);
+        System.out.println(r.resolve());
 
     } catch (Exception e) {
 
