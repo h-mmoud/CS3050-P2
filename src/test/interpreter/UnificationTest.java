@@ -8,11 +8,10 @@ import org.junit.jupiter.api.AfterEach;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
-import java.beans.Transient;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import javax.sound.sampled.SourceDataLine;
 
 import parser.*;
 import parser.ast.*;
@@ -21,15 +20,15 @@ public class UnificationTest {
 
     @BeforeEach
     public void setUp() {
-        System.out.println("===================================");
+        System.out.println("|-----------------|");
         System.out.println("UnifierTest\n");
 
-        Unifier unifier = new Unifier();
     }
 
     @AfterEach
     public void tearDown() {
-        System.out.println("===================================\n\n");
+
+        System.out.println("\n|________________|\n");
     }
     /*
      * Test unification of identical terms. The terms are of the form x and x. The

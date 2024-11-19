@@ -48,6 +48,7 @@ public class Resolver {
         return resolve(resolutionRoot);
     }
 
+    // Depth-first search to resolve the query
     private boolean resolve(Node node) {
 
         // Check if the goal is empty
