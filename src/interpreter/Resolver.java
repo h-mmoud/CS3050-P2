@@ -38,7 +38,6 @@ public class Resolver {
         }
 
         ArrayList<FPTerm> goal = query.body != null ? query.body.ts : new ArrayList<>();
-        System.out.println("Goal: " + goal.toString());
 
         this.resolutionRoot = new Node(goal, null, new HashMap<>());
     }
@@ -50,6 +49,7 @@ public class Resolver {
 
     // Depth-first search to resolve the query
     private boolean resolve(Node node) {
+        System.out.println("Goal: " + node.goal.toString());
 
         // Check if the goal is empty
         if (node.goal.isEmpty()) {
