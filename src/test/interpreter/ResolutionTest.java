@@ -60,15 +60,25 @@ public class ResolutionTest{
     @Test
     public void testResolveVariableClauses() {
         FPClause clause = new FPClause(new FPHead("p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CONST, "a")))));
+        
+        FPClause clause2 = new FPClause(new FPHead("p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CONST, "b")))));
+
         System.out.println("Clause: " + clause.toString());        
 
         KnowledgeBase kb = new KnowledgeBase();
         kb.addClause(clause);
-        
+        kb.addClause(clause2);
+
         FPClause query = new FPClause(null, new FPBody(new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CONST, "p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.IDENT, "X"))))))));
         System.out.println("Query: " + query.toString());
+
+        
         
         Resolver resolver = new Resolver(query, kb);
         assertTrue(resolver.resolve());
+        // assertEquals(new FPTerm(TKind.CONST, "a"), resolver.resolutionRoot.substitution.get("X"));
     }
+    
+
+
 }

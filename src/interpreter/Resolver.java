@@ -22,30 +22,45 @@ class Node {
 }
 
 public class Resolver {
-    private final FPClause query;
+    // private final FPClause query;
     private final KnowledgeBase kb;
-    private Node resolutionRoot; 
+    // private Node resolutionRoot; 
 
-    public Resolver(FPClause query, KnowledgeBase kb) {
-        this.query = query;
+    public Resolver(KnowledgeBase kb) {
+        // this.query = query;
         this.kb = kb;
-
+        this.visited = new HashMap<>();
+        this.theta = new HashMap<>();
         // Extract goals from the query
 
-        if (query.head != null) {
-            System.out.println("Not a query: " + query.toString());
-            return;
-        }
+    //     if (query.head != null) {
+    //         System.out.println("Not a query: " + query.toString());
+    //         return;
+    //     }
 
-        ArrayList<FPTerm> goal = query.body != null ? query.body.ts : new ArrayList<>();
-        System.out.println("Goal: " + goal.toString());
+    //     ArrayList<FPTerm> goal = query.body != null ? query.body.ts : new ArrayList<>();
+    //     System.out.println("Goal: " + goal.toString());
 
-        this.resolutionRoot = new Node(goal, null, new HashMap<>());
+    //     this.resolutionRoot = new Node(goal, null, new HashMap<>());
     }
     
-    public boolean resolve() {
-        System.out.println("Resolving " + query.toString());
-        return resolve(resolutionRoot);
+    // 
+    public boolean resolve(FPClause query) {
+
+        if (query.head != null || query.body == null) {
+            System.out.println("Not a query: " + query.toString());
+            return false;
+        }
+
+        FPTerm goal = query.body.ts[0];
+        Node resolutionRoot = new Node(goal, null, new HashMap<>());
+
+
+        
+
+        boolean resolution = resolve(resolutionRoot);
+
+        return resolution;
     }
 
     // Depth-first search to resolve the query
@@ -80,6 +95,7 @@ public class Resolver {
 
                     // Recursively resolve the new node
                     if (resolve(newNode)) {
+
                         return true;
                     }
                 }
