@@ -7,7 +7,7 @@ import parser.ast.FPTerm;
 import parser.ast.TKind;
 
 public class Unifier {
-    private final Map<String, FPTerm> theta;
+    private static Map<String, FPTerm> theta;
 
     public Unifier(Map<String, FPTerm> theta) {
         this.theta = theta;
@@ -32,7 +32,7 @@ public class Unifier {
        System.out.println("Theta: " + theta);
 
        return switch (x) {
-        case FPTerm t when x.equals(y) -> true; // why wouldnt this be x.equals(y) ?
+        case FPTerm t when t.equals(y) -> true;
 
         case FPTerm t when t.kind == TKind.IDENT -> unifyVar(t, y, theta);
 

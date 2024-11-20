@@ -1,0 +1,1 @@
+changed fpterm to have equality
