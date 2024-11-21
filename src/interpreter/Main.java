@@ -5,7 +5,6 @@ import java.io.StringReader;
 import java.util.Scanner;
 
 import parser.FProlog;
-import parser.ast.FPClause;
 import parser.ast.FPProg;
 
 public class Main {

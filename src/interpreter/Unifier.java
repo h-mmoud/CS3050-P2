@@ -28,6 +28,8 @@ public class Unifier {
            return false;
        }
 
+       Map<String, FPTerm> thetaCopy = new HashMap<>(theta);
+
     //    System.out.println("Unifying " + x + " with " + y);
     //    System.out.println("x kind: " + x.kind);
     //     System.out.println("y kind: " + y.kind);
@@ -37,12 +39,12 @@ public class Unifier {
        return switch (x) {
         case FPTerm t when t.equals(y) -> true;
 
-        case FPTerm t when t.kind == TKind.IDENT -> unifyVar(t, y, theta);
+        case FPTerm t when t.kind == TKind.IDENT -> unifyVar(t, y, thetaCopy);
 
         case FPTerm t when t.kind == TKind.CTERM && y.kind == TKind.CTERM -> {
             if (t.name.equals(y.name) && t.args.size() == y.args.size()) {
                 for (int i = 0; i < t.args.size(); i++) {
-                    if (!unify(t.args.get(i), y.args.get(i), theta)) {
+                    if (!unify(t.args.get(i), y.args.get(i), thetaCopy)) {
                         yield false;
                     }
                 }
@@ -51,7 +53,7 @@ public class Unifier {
             yield false;
         }
 
-        default -> y.kind == TKind.IDENT ? unifyVar(y, x, theta) : false;
+        default -> y.kind == TKind.IDENT ? unifyVar(y, x, thetaCopy) : false;
        };
     }
 
