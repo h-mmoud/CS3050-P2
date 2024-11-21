@@ -3,6 +3,7 @@ package interpreter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,6 +33,10 @@ public class Resolver {
 
     private Map<String, FPTerm> visited;
     private Map<String, FPTerm> bindings;
+    private String orignalQueryName;
+    private LinkedHashSet<FPClause> clauses;
+    private FPClause query;
+
     private static Set<FPClause> previousUnifications;
     private static FPClause previousQuery;
 
@@ -42,6 +47,8 @@ public class Resolver {
         this.kb = kb;
         this.visited = new HashMap<>(); // Visited nodes
         this.bindings = new HashMap<>(); // Bindings for the current resolution
+        this.clauses = new LinkedHashSet<>();
+        this.query = null;
 
         Resolver.previousQuery = null;
         Resolver.previousUnifications = new HashSet<>();
@@ -64,6 +71,7 @@ public class Resolver {
         TKind goalKind;
 
         Map<String, FPTerm> bindings = new HashMap<>();        
+        this.visited.clear();
 
         if (query.head != null) {
             System.out.println("Not a query: " + query.toString());
@@ -72,6 +80,7 @@ public class Resolver {
 
         if (query.body == null || query.body.ts.size() == 0) {
             try {
+                this.query = previousQuery;
                 goal = previousQuery.body.ts.get(0);
                 // System.out.println("Goal: " + goal.toString());
                 // System.out.println("goal kind: " + goal.kind);
@@ -83,10 +92,9 @@ public class Resolver {
         } else {
             goal = query.body.ts.get(0);
             // System.out.println("Goal: " + goal.toString());
+            this.query = query;
             Resolver.previousQuery = query;
         }
-
-        
         Node resolutionRoot = new Node(goal, null, new HashMap<>());
 
         boolean resolution = resolve(resolutionRoot, bindings);
@@ -124,13 +132,14 @@ private boolean resolve(Node node, Map<String, FPTerm> bindings) {
         }
 
         if (visited.containsKey(goal.toString()) && node.parent != null) {
+            // System.out.println("Visited: " + goal.toString());
             return false;
         }
 
         visited.put(goal.toString(), goal);
 
         // check the knowledge base for the goal
-        ArrayList<FPClause> clauses = new ArrayList<>();
+        // ArrayList<FPClause> clauses = new ArrayList<>();
         
         // System.out.println("Resolving goal: " + goal.toString());
         clauses.addAll(kb.getClauses(goal.name));
@@ -144,6 +153,7 @@ private boolean resolve(Node node, Map<String, FPTerm> bindings) {
         // Try to resolve the goal with the clauses
         for (FPClause clause : clauses) {
             if (previousUnifications.contains(clause)) {
+                // System.out.println("Skipping: " + clause.toString());
                 continue;
             }
 
@@ -159,13 +169,14 @@ private boolean resolve(Node node, Map<String, FPTerm> bindings) {
 
                 // Recursively resolve the new node
                 if (resolve(newNode, newBindings)) {
-                    goal.args.forEach(arg -> {
-                        if (arg.kind == TKind.IDENT) {
-                            previousUnifications.add(clause);
-                        }
-                        
-                    });
+                    
+                    if (newGoal == null && query.body.ts.get(0).args.get(0).kind == TKind.IDENT) {
+                        // System.out.println("Found: " + clause.toString());
+                        previousUnifications.add(clause);
+                    }
+
                     return true;
+                    // }
                 }
             }
         }
