@@ -85,7 +85,7 @@ ts.add(ti);
       }
 if (ts.size() == 0) {
             t = new FPTerm(TKind.CONST, ta.image);
-          } {
+          } else {
             t = new FPTerm(TKind.CTERM, ta.image, ts);
           }
       break;
