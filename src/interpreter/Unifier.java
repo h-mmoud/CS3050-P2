@@ -7,7 +7,7 @@ import parser.ast.FPTerm;
 import parser.ast.TKind;
 
 public class Unifier {
-    private static Map<String, FPTerm> theta;
+    private Map<String, FPTerm> theta;
 
     public Unifier(Map<String, FPTerm> theta) {
         this.theta = theta;
@@ -29,6 +29,9 @@ public class Unifier {
        }
 
        System.out.println("Unifying " + x + " with " + y);
+       System.out.println("x kind: " + x.kind);
+        System.out.println("y kind: " + y.kind);
+
        System.out.println("Theta: " + theta);
 
        return switch (x) {
