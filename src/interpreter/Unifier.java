@@ -28,11 +28,11 @@ public class Unifier {
            return false;
        }
 
-       System.out.println("Unifying " + x + " with " + y);
-       System.out.println("x kind: " + x.kind);
-        System.out.println("y kind: " + y.kind);
+    //    System.out.println("Unifying " + x + " with " + y);
+    //    System.out.println("x kind: " + x.kind);
+    //     System.out.println("y kind: " + y.kind);
 
-       System.out.println("Theta: " + theta);
+    //    System.out.println("Theta: " + theta);
 
        return switch (x) {
         case FPTerm t when t.equals(y) -> true;
@@ -56,7 +56,7 @@ public class Unifier {
     }
 
     private static boolean unifyVar(FPTerm var, FPTerm x, Map<String, FPTerm> theta) {
-        System.out.println("Unifying variable " + var + " with " + x);
+        // System.out.println("Unifying variable " + var + " with " + x);
 
         return switch (x) {
             case FPTerm t when theta.containsKey(var.name) -> unify(theta.get(var.name), t, theta);
@@ -75,15 +75,15 @@ public class Unifier {
     // TODO: Implement occurs check with switch statements
     private static boolean occursCheck(FPTerm var, FPTerm term, Map<String, FPTerm> theta) {
         if (term.kind == TKind.IDENT) {
-            System.out.println("Checking occurs check for " + var + " and " + term + " in " + theta);
+            // System.out.println("Checking occurs check for " + var + " and " + term + " in " + theta);
 
             if (theta.containsKey(term.name)) {
                 // If term is bound, check the binding
-                System.out.println("Term is bound");
+                // System.out.println("Term is bound");
                 return occursCheck(var, theta.get(term.name), theta);
             } else {
                 // If term is unbound, only fails occurs check if var and term are different
-                System.out.println("Checking if " + var + " is equal to " + term + ": " + var.equals(term));
+                // System.out.println("Checking if " + var + " is equal to " + term + ": " + var.equals(term));
                 return var.equals(term);
             }
         } else if (term.kind == TKind.CONST) {

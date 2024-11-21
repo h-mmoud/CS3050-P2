@@ -19,7 +19,6 @@ public class KnowledgeBase {
             return;
         }
         String functor = clause.head.name;
-        System.out.println("KnowledgeBase.addClause() functor: " + functor);
         knowledgeBase.computeIfAbsent(functor, k -> new ArrayList<>()).add(clause);
 
     }
@@ -29,7 +28,7 @@ public class KnowledgeBase {
     }
 
     public String toString() {
-        System.out.println("KnowledgeBase.toString()");
+        // System.out.println("KnowledgeBase.toString()");
         StringBuilder sb = new StringBuilder();
         for (ArrayList<FPClause> clauses : knowledgeBase.values()) {
             for (FPClause clause : clauses) {

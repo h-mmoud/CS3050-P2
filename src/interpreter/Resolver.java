@@ -9,6 +9,7 @@ import java.util.Set;
 import parser.ast.FPClause;
 import parser.ast.FPHead;
 import parser.ast.FPTerm;
+import parser.ast.TKind;
 
 class Node {
     public FPTerm goal;
@@ -60,6 +61,8 @@ public class Resolver {
     // 
     public boolean resolve(FPClause query) {
         FPTerm goal;
+        TKind goalKind;
+
         Map<String, FPTerm> bindings = new HashMap<>();        
 
         if (query.head != null) {
@@ -67,26 +70,43 @@ public class Resolver {
             return false;
         }
 
-        if (query.body == null) {
+        if (query.body == null || query.body.ts.size() == 0) {
             try {
                 goal = previousQuery.body.ts.get(0);
-                System.out.println("Goal: " + goal.toString());
+                // System.out.println("Goal: " + goal.toString());
+                // System.out.println("goal kind: " + goal.kind);
+                // System.out.println("goal arg types: " + goal.args.get(0).kind);
             } catch (Exception e) {
-                System.out.println("No previous query");
+                System.out.println("no");
                 return false;
             }
         } else {
             goal = query.body.ts.get(0);
-            System.out.println("Goal: " + goal.toString());
+            // System.out.println("Goal: " + goal.toString());
             Resolver.previousQuery = query;
         }
 
+        
         Node resolutionRoot = new Node(goal, null, new HashMap<>());
 
         boolean resolution = resolve(resolutionRoot, bindings);
         if (resolution) {
-            System.out.println("Resolution successful");
-            System.out.println("Bindings: " + this.bindings.toString());
+            String result = "";
+
+//             for (FPTerm arg : goal.args) {
+//                 if (arg.kind == TKind.IDENT) {
+//                     result += bindings.toString() + ", ";
+//                 } else {
+//                     result += "yes" + " ";
+//                 }
+//             }
+// V            System.out.println(result);
+            // System.out.println("Resolution successful");
+            if (this.bindings.size() > 0) {
+                System.out.println(this.bindings.toString());
+            } else {
+                System.out.println("yes");
+            }
         } else {
             System.out.println("no");
         }
@@ -112,9 +132,13 @@ private boolean resolve(Node node, Map<String, FPTerm> bindings) {
         // check the knowledge base for the goal
         ArrayList<FPClause> clauses = new ArrayList<>();
         
-        System.out.println("Resolving goal: " + goal.toString());
+        // System.out.println("Resolving goal: " + goal.toString());
         clauses.addAll(kb.getClauses(goal.name));
-        System.out.println("Clauses: " + clauses.toString());
+
+        if (clauses.size() == 0) {
+            return false;
+        }
+        // System.out.println("Clauses: " + clauses.toString());
         
 
         // Try to resolve the goal with the clauses
@@ -135,7 +159,12 @@ private boolean resolve(Node node, Map<String, FPTerm> bindings) {
 
                 // Recursively resolve the new node
                 if (resolve(newNode, newBindings)) {
-                    previousUnifications.add(clause);
+                    goal.args.forEach(arg -> {
+                        if (arg.kind == TKind.IDENT) {
+                            previousUnifications.add(clause);
+                        }
+                        
+                    });
                     return true;
                 }
             }

@@ -5,6 +5,7 @@ import java.io.StringReader;
 import java.util.Scanner;
 
 import parser.FProlog;
+import parser.ast.FPClause;
 import parser.ast.FPProg;
 
 public class Main {
@@ -20,26 +21,31 @@ public class Main {
         // create new abstract syntax tree
         FPProg ast = new FProlog(new StringReader(str)).P();
 
-        System.out.println(ast.toString());
+        // System.out.println(ast.toString());
 
 
         // create new knowledge base
         KnowledgeBase kb = new KnowledgeBase();
-
+        Resolver r = new Resolver(kb);
         for (int i = 0; i < ast.cs.size(); i++) {
+          if (ast.cs.get(i).head != null) {
             kb.addClause(ast.cs.get(i));
-
+            r = new Resolver(kb);
+          } else {
+            r.resolve(ast.cs.get(i));
+          }
         }
 
-        System.out.println(kb.toString());
+        
+        // System.out.println(kb.toString());
 
         // create new resolver
-        Resolver r = new Resolver(kb);
-        System.out.println(r.resolve(ast.cs.get(1)));
+        // Resolver r = new Resolver(kb);
+        // System.out.println(r.resolve(ast.cs.get(1)));
 
     } catch (Exception e) {
-
-      System.err.println(e.toString());
+      throw new RuntimeException(e);
+      // System.err.println(e.toString());
     }
   }
 }

@@ -45,7 +45,7 @@ public class ResolutionTest{
         KnowledgeBase kb = new KnowledgeBase();
         kb.addClause(clause);
         
-        FPClause query = new FPClause(null, new FPBody(new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CONST, "p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CONST, "a"))))))));
+        FPClause query = new FPClause(null, new FPBody(new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CTERM, "p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CONST, "a"))))))));
         System.out.println("Query: " + query.toString());
         
         Resolver resolver = new Resolver(kb);
@@ -66,7 +66,7 @@ public class ResolutionTest{
         KnowledgeBase kb = new KnowledgeBase();
         kb.addClause(clause);
 
-        FPClause query = new FPClause(null, new FPBody(new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CONST, "p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.IDENT, "X"))))))));
+        FPClause query = new FPClause(null, new FPBody(new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CTERM, "p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.IDENT, "X"))))))));
         System.out.println("Query: " + query.toString());
 
         
@@ -91,7 +91,7 @@ public class ResolutionTest{
         kb.addClause(clause1);
         kb.addClause(clause2);
 
-        FPClause query = new FPClause(null, new FPBody(new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CONST, "p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.IDENT, "X"))))))));
+        FPClause query = new FPClause(null, new FPBody(new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CTERM, "p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.IDENT, "X"))))))));
         System.out.println("Query: " + query.toString());
 
 
@@ -113,10 +113,67 @@ public class ResolutionTest{
         KnowledgeBase kb = new KnowledgeBase();
         kb.addClause(clause);
         
-        FPClause query = new FPClause(null, new FPBody(new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CONST, "p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.IDENT, "X"), new FPTerm(TKind.IDENT, "Y"))))))));
+        FPClause query = new FPClause(null, new FPBody(new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CTERM, "p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.IDENT, "X"), new FPTerm(TKind.IDENT, "Y"))))))));
         System.out.println("Query: " + query.toString());
         
-        Resolver resolver = new Resolver(query, kb);
-        assertTrue(resolver.resolve());
+        Resolver resolver = new Resolver(kb);
+
+        assertTrue(resolver.resolve(query));
+    }
+
+    /*
+     * Test case for resolving a query with a single clause, and a rule with one arity.
+     */
+    @Test
+    public void testVarResolutionWithRules() {
+        FPClause fact = new FPClause(
+            new FPHead("p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CONST, "a"))
+        )));
+
+        FPClause rule = new FPClause(
+            new FPHead("q", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.IDENT, "X")))), 
+            new FPBody(new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CTERM, "p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.IDENT, "X"))))
+        ))));
+
+        System.out.println("Fact: " + fact.toString());
+        System.out.println("Rule: " + rule.toString());
+
+        FPClause query = new FPClause(null, new FPBody(new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CTERM, "q", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.IDENT, "Y"))))))));
+    
+        System.out.println("Query: " + query.toString());
+
+        KnowledgeBase kb = new KnowledgeBase();
+        kb.addClause(fact);
+        kb.addClause(rule);
+        
+        Resolver resolver = new Resolver(kb);
+        assertTrue(resolver.resolve(query));
+    }
+
+
+    @Test
+    public void testConstResolutionWithRules() {
+        FPClause fact = new FPClause(
+            new FPHead("p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CONST, "a"))
+        )));
+
+        FPClause rule = new FPClause(
+            new FPHead("q", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.IDENT, "X")))), 
+            new FPBody(new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CTERM, "p", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.IDENT, "X"))))
+        ))));
+
+        System.out.println("Fact: " + fact.toString());
+        System.out.println("Rule: " + rule.toString());
+
+        FPClause query = new FPClause(null, new FPBody(new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CTERM, "q", new ArrayList<FPTerm>(List.of(new FPTerm(TKind.CONST, "a"))))))));
+    
+        System.out.println("Query: " + query.toString());
+
+        KnowledgeBase kb = new KnowledgeBase();
+        kb.addClause(fact);
+        kb.addClause(rule);
+        
+        Resolver resolver = new Resolver(kb);
+        assertTrue(resolver.resolve(query));
     }
 }
