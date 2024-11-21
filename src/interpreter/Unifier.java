@@ -29,22 +29,30 @@ public class Unifier {
        }
 
        Map<String, FPTerm> thetaCopy = new HashMap<>(theta);
+       boolean success = unifyInternal(x, y, thetaCopy);
 
+         if (success) {
+            theta.clear();
+            theta.putAll(thetaCopy);
+         }
+
+         return success;
+        }
     //    System.out.println("Unifying " + x + " with " + y);
     //    System.out.println("x kind: " + x.kind);
     //     System.out.println("y kind: " + y.kind);
-
     //    System.out.println("Theta: " + theta);
 
+    private static boolean unifyInternal(FPTerm x, FPTerm y, Map<String, FPTerm> theta) {
        return switch (x) {
         case FPTerm t when t.equals(y) -> true;
 
-        case FPTerm t when t.kind == TKind.IDENT -> unifyVar(t, y, thetaCopy);
+        case FPTerm t when t.kind == TKind.IDENT -> unifyVar(t, y, theta);
 
         case FPTerm t when t.kind == TKind.CTERM && y.kind == TKind.CTERM -> {
             if (t.name.equals(y.name) && t.args.size() == y.args.size()) {
                 for (int i = 0; i < t.args.size(); i++) {
-                    if (!unify(t.args.get(i), y.args.get(i), thetaCopy)) {
+                    if (!unifyInternal(t.args.get(i), y.args.get(i), theta)) {
                         yield false;
                     }
                 }
@@ -53,7 +61,7 @@ public class Unifier {
             yield false;
         }
 
-        default -> y.kind == TKind.IDENT ? unifyVar(y, x, thetaCopy) : false;
+        default -> y.kind == TKind.IDENT ? unifyVar(y, x, theta) : false;
        };
     }
 
@@ -61,9 +69,9 @@ public class Unifier {
         // System.out.println("Unifying variable " + var + " with " + x);
 
         return switch (x) {
-            case FPTerm t when theta.containsKey(var.name) -> unify(theta.get(var.name), t, theta);
+            case FPTerm t when theta.containsKey(var.name) -> unifyInternal(theta.get(var.name), t, theta);
 
-            case FPTerm t when t.kind == TKind.IDENT && theta.containsKey(t.name) -> unify(var, theta.get(t.name), theta);
+            case FPTerm t when t.kind == TKind.IDENT && theta.containsKey(t.name) -> unifyInternal(var, theta.get(t.name), theta);
 
             case FPTerm t when occursCheck(var, t, theta) -> false;
 

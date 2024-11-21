@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import parser.ast.FPClause;
 import parser.ast.FPHead;
@@ -83,9 +84,6 @@ public class Resolver {
             try {
                 this.query = previousQuery;
                 goals = previousQuery.body.ts;
-                // System.out.println("Goal: " + goal.toString());
-                // System.out.println("goal kind: " + goal.kind);
-                // System.out.println("goal arg types: " + goal.args.get(0).kind);
             } catch (Exception e) {
                 System.out.println("no");
                 return false;
@@ -100,19 +98,11 @@ public class Resolver {
 
         boolean resolution = resolve(resolutionRoot, bindings);
         if (resolution) {
-            String result = "";
-
-//             for (FPTerm arg : goal.args) {
-//                 if (arg.kind == TKind.IDENT) {
-//                     result += bindings.toString() + ", ";
-//                 } else {
-//                     result += "yes" + " ";
-//                 }
-//             }
-// V            System.out.println(result);
-            // System.out.println("Resolution successful");
-            if (this.bindings.size() > 0) {
-                System.out.println(this.bindings.toString());
+            if (!this.bindings.isEmpty()) {
+                String formatted = this.bindings.entrySet().stream()
+                    .map(entry -> entry.getKey() + " = " + entry.getValue())
+                    .collect(Collectors.joining(", "));
+                System.out.println(formatted);
             } else {
                 System.out.println("yes");
             }
@@ -127,9 +117,9 @@ public class Resolver {
 private boolean resolve(Node node, Map<String, FPTerm> bindings) {
         ArrayList<FPTerm> goals = node.goals;
 
-        // System.out.println("Resolving: " + goals.toString());
         // Check if the goal is empty
         if (goals.isEmpty()) {
+            this.bindings = node.substitution;
             return true;
         }
 
@@ -137,14 +127,9 @@ private boolean resolve(Node node, Map<String, FPTerm> bindings) {
         FPTerm currentGoal = goals.get(0);
 
         if (visited.containsKey(currentGoal.toString()) && node.parent != null) {
-            // System.out.println("Visited: " + goal.toString());
             return false;
         }
-
         visited.put(currentGoal.toString(), currentGoal);
-
-        // check the knowledge base for the goal
-        // ArrayList<FPClause> clauses = new ArrayList<>();
         
         // System.out.println("Resolving goal: " + currentGoal.toString());
         clauses.addAll(kb.getClauses(currentGoal.name));
@@ -152,51 +137,58 @@ private boolean resolve(Node node, Map<String, FPTerm> bindings) {
         if (clauses.isEmpty()) {
             return false;
         }
-        // System.out.println("Clauses: " + clauses.toString());
-        
 
         // Try to resolve the goal with the clauses
         for (FPClause clause : clauses) {
-            // System.out.println("Clause: " + clause.toString());
+            
             if (previousUnifications.contains(clause)) {
-                // System.out.println("Skipping: " + clause.toString());
                 continue;
             }
 
-            // System.out.println("Trying: " + clause.toString());
-            Map<String, FPTerm> newBindings = new HashMap<>(bindings);
+            Map<String, FPTerm> newBindings = new HashMap<>(node.substitution);
 
             // Unify the head of the clause with the goal
-            // System.out.println("Unifying: " + currentGoal.toString() + " with " + clause.head.toString());
             if (unifyGoalWithHead(currentGoal, clause.head, newBindings)) {
                 // Create a new goal
                 ArrayList<FPTerm> newGoals = new ArrayList<>(goals);
                 newGoals.remove(0);
-                // Create a new node
 
+                // Add the body of the clause to the new goals
                 if (clause.body != null) {
-                    // System.out.println("Adding: " + clause.body.ts.toString());
                     newGoals.addAll(0, clause.body.ts);
                 }
 
                 Node newNode = new Node(newGoals, node, newBindings);
 
                 // Recursively resolve the new node
-                if (resolve(newNode, newBindings)) {
-
+                if (resolve(newNode, newBindings)) { // TODO: 
                     if (newGoals.isEmpty() && query.body.ts.get(0).args.get(0).kind == TKind.IDENT) {
                         previousUnifications.add(clause);
                     }
-
                     return true;
                 }
-                
             } else {
-                // System.out.println("Failed: " + clause.toString());
+                if (tryAlternativeUnification(currentGoal, clause, node.substitution)) {
+                    this.bindings = node.substitution;
+                    return true;
+                }
             }
         }
-
         visited.remove(currentGoal.toString());
+        return false;
+    }
+
+    private boolean tryAlternativeUnification(FPTerm goal, FPClause clause, Map<String, FPTerm> originalBindings) {
+        for (String var : originalBindings.keySet()) {
+            Map<String, FPTerm> tempBindings = new HashMap<>(originalBindings);
+            tempBindings.remove(var);  // Remove one binding
+
+            if (unifyGoalWithHead(goal, clause.head, tempBindings)) {
+                originalBindings.clear();
+                originalBindings.putAll(tempBindings);
+                return true;
+            }
+        }
         return false;
     }
 
@@ -214,18 +206,20 @@ private boolean resolve(Node node, Map<String, FPTerm> bindings) {
             return false;
         }
 
+        Map<String, FPTerm> thetaCopy = new HashMap<>(theta);
+
         // Unify each corresponding argument
         for (int i = 0; i < goalArity; i++) {
             FPTerm goalArg = goal.args.get(i);
             FPTerm headParam = head.params.get(i);
-            System.out.println("Unifying: " + goalArg.toString() + " with " + headParam.toString());
-            System.out.println("Theta: " + theta.toString());
-            if (!Unifier.unify(goalArg, headParam, theta)) {
+            if (!Unifier.unify(goalArg, headParam, thetaCopy)) {
                 return false;
             }
         }
-
+        theta.clear();
+        theta.putAll(thetaCopy);
         System.out.println("Unification successful: " + theta.toString());
+
 
         return true;
     }
