@@ -2,19 +2,23 @@ package interpreter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import parser.ast.FPClause;
 import parser.ast.FPHead;
 import parser.ast.FPTerm;
 
 class Node {
-    public ArrayList<FPTerm> goal;
+    public FPTerm goal;
     public Node parent;
-    public ArrayList<Node> children;
     public Map<String, FPTerm> substitution;
 
-    public Node(ArrayList<FPTerm> goal, Node parent, Map<String, FPTerm> substitution) {
+    public ArrayList<Node> children;
+    public Map<String, FPTerm> theta;
+
+    public Node(FPTerm goal, Node parent, Map<String, FPTerm> substitution) {
         this.goal = goal;
         this.parent = parent;
         this.substitution = substitution;
@@ -22,70 +26,122 @@ class Node {
 }
 
 public class Resolver {
-    private final FPClause query;
+    // private final FPClause query;
     private final KnowledgeBase kb;
-    private Node resolutionRoot; 
 
-    public Resolver(FPClause query, KnowledgeBase kb) {
-        this.query = query;
+    private Map<String, FPTerm> visited;
+    private Map<String, FPTerm> bindings;
+    private static Set<FPClause> previousUnifications;
+    private static FPClause previousQuery;
+
+    // private Node resolutionRoot; 
+
+    public Resolver(KnowledgeBase kb) {
+        // this.query = query;
         this.kb = kb;
+        this.visited = new HashMap<>(); // Visited nodes
+        this.bindings = new HashMap<>(); // Bindings for the current resolution
 
+        Resolver.previousQuery = null;
+        Resolver.previousUnifications = new HashSet<>();
         // Extract goals from the query
+
+    //     if (query.head != null) {
+    //         System.out.println("Not a query: " + query.toString());
+    //         return;
+    //     }
+
+    //     ArrayList<FPTerm> goal = query.body != null ? query.body.ts : new ArrayList<>();
+    //     System.out.println("Goal: " + goal.toString());
+
+    //     this.resolutionRoot = new Node(goal, null, new HashMap<>());
+    }
+    
+    // 
+    public boolean resolve(FPClause query) {
+        FPTerm goal;
+        Map<String, FPTerm> bindings = new HashMap<>();        
 
         if (query.head != null) {
             System.out.println("Not a query: " + query.toString());
-            return;
+            return false;
         }
 
-        ArrayList<FPTerm> goal = query.body != null ? query.body.ts : new ArrayList<>();
+        if (query.body == null) {
+            try {
+                goal = previousQuery.body.ts.get(0);
+                System.out.println("Goal: " + goal.toString());
+            } catch (Exception e) {
+                System.out.println("No previous query");
+                return false;
+            }
+        } else {
+            goal = query.body.ts.get(0);
+            System.out.println("Goal: " + goal.toString());
+            Resolver.previousQuery = query;
+        }
 
-        this.resolutionRoot = new Node(goal, null, new HashMap<>());
-    }
-    
-    public boolean resolve() {
-        System.out.println("Resolving " + query.toString());
-        return resolve(resolutionRoot);
+        Node resolutionRoot = new Node(goal, null, new HashMap<>());
+
+        boolean resolution = resolve(resolutionRoot, bindings);
+        if (resolution) {
+            System.out.println("Resolution successful");
+            System.out.println("Bindings: " + this.bindings.toString());
+        } else {
+            System.out.println("no");
+        }
+
+        return resolution;
     }
 
     // Depth-first search to resolve the query
-    private boolean resolve(Node node) {
-        System.out.println("Goal: " + node.goal.toString());
+private boolean resolve(Node node, Map<String, FPTerm> bindings) {
+        FPTerm goal = node.goal;
 
         // Check if the goal is empty
-        if (node.goal.isEmpty()) {
+        if (goal == null) {
             return true;
         }
 
+        if (visited.containsKey(goal.toString()) && node.parent != null) {
+            return false;
+        }
+
+        visited.put(goal.toString(), goal);
+
         // check the knowledge base for the goal
         ArrayList<FPClause> clauses = new ArrayList<>();
-        for (FPTerm goal : node.goal) {
-            System.out.println("Resolving goal: " + goal.toString());
-            clauses.addAll(kb.getClauses(goal.name));
-        }
+        
+        System.out.println("Resolving goal: " + goal.toString());
+        clauses.addAll(kb.getClauses(goal.name));
+        System.out.println("Clauses: " + clauses.toString());
+        
 
         // Try to resolve the goal with the clauses
         for (FPClause clause : clauses) {
-            Map<String, FPTerm> newTheta = new HashMap<>();
+            if (previousUnifications.contains(clause)) {
+                continue;
+            }
+
+            Map<String, FPTerm> newBindings = new HashMap<>(bindings);
 
             // Unify the head of the clause with the goal
-            for (FPTerm goal : node.goal) {
-                if (unifyGoalWithHead(goal, clause.head, newTheta)) {
-                    // Create a new goal
-                    ArrayList<FPTerm> newGoal = new ArrayList<>(node.goal);
-                    newGoal.remove(0);
-                    newGoal.addAll(clause.body != null ? clause.body.ts : new ArrayList<>());
+            if (unifyGoalWithHead(goal, clause.head, newBindings)) {
+                // Create a new goal
+                FPTerm newGoal = (clause.body != null ? clause.body.ts.get(0) : null);
 
-                    // Create a new node
-                    Node newNode = new Node(newGoal, node, newTheta);
+                // Create a new node
+                Node newNode = new Node(newGoal, node, newBindings);
 
-                    // Recursively resolve the new node
-                    if (resolve(newNode)) {
-                        return true;
-                    }
+                // Recursively resolve the new node
+                if (resolve(newNode, newBindings)) {
+                    previousUnifications.add(clause);
+                    return true;
                 }
             }
         }
-
+    
+        visited.remove(goal.toString());
         return false;
     }
 
@@ -111,7 +167,7 @@ public class Resolver {
                 return false;
             }
         }
-
+        this.bindings.putAll(theta);
         return true;
     }
 

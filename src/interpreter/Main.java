@@ -34,8 +34,8 @@ public class Main {
         System.out.println(kb.toString());
 
         // create new resolver
-        Resolver r = new Resolver(ast.cs.get(1), kb);
-        System.out.println(r.resolve());
+        Resolver r = new Resolver(kb);
+        System.out.println(r.resolve(ast.cs.get(1)));
 
     } catch (Exception e) {
 
