@@ -56,7 +56,6 @@ public class Resolver {
         Resolver.previousUnifications = new HashSet<>();
     }
     
-    // depth-first search to resolve the query
     public boolean resolve(FPClause query) {
         ArrayList<FPTerm> goals;
         this.visited.clear(); // clear the visted nodes each time we resolve a new query
@@ -106,79 +105,74 @@ public class Resolver {
         return resolution;
     }
 
-    // Recursively resolve the query
+    // depth-first search to resolve the query
     private boolean resolve(Node node) {
         ArrayList<FPTerm> goals = node.goals;
+        boolean success = false;
 
-        // Check if the goal is empty (Base case)
         if (goals.isEmpty()) {
             this.bindings = node.substitution;
             return true;
         }
 
-        // If the goal is the primitive predicate write, print the terms that succeeds
-        if (goals.get(0).name.equals("write")) {
-            write(node, goals.get(0), node.substitution);
-
-            // Remove the goal so it doesn't get resolved
-            goals.remove(0);
-        }
-
-        // Start with the first goal
         FPTerm currentGoal = goals.get(0);
 
-        // if the goal has been visited before, return false to avoid infinite loops
+        // Handle write primitive first
+        if (currentGoal.name.equals("write")) {
+            write(node, currentGoal, node.substitution);
+            goals.remove(0);
+            return resolve(node);
+        }
+
         if (visited.containsKey(currentGoal.toString()) && node.parent != null) {
             return false;
         }
         visited.put(currentGoal.toString(), currentGoal);
 
-        // Add the clauses for the current goal to the linked hashset of clauses (allows for ordering and no duplicates)
         clauses.addAll(kb.getClauses(currentGoal.name));
-
-        // If there are no clauses for the goal in the knowledge base, return false
         if (clauses.isEmpty()) {
             return false;
         }
 
-        // Depth first search to resolve the goal
         for (FPClause clause : clauses) {
             if (previousUnifications.contains(clause)) {
                 continue;
             }
 
+            // Try initial unification
             Map<String, FPTerm> newBindings = new HashMap<>(node.substitution);
+            boolean unified = unifyGoalWithHead(currentGoal, clause.head, newBindings);
 
-            // Unify the head of the clause with the goal
-            if (unifyGoalWithHead(currentGoal, clause.head, newBindings)) {
-                // Create a new goal
+            // If initial unification fails, try alternative bindings
+            if (!unified) {
+                for (String var : node.substitution.keySet()) {
+                    newBindings = new HashMap<>(node.substitution);
+                    newBindings.remove(var);
+                    if (unifyGoalWithHead(currentGoal, clause.head, newBindings)) {
+                        unified = true;
+                        break;
+                    }
+                }
+            }
+
+            if (unified) {
                 ArrayList<FPTerm> newGoals = new ArrayList<>(goals);
                 newGoals.remove(0);
-
-                // Add the body of the clause to the new goals
                 if (clause.body != null) {
                     newGoals.addAll(0, clause.body.ts);
                 }
-
-                // Create a new node with the new goals and bindings
                 Node newNode = new Node(newGoals, node, newBindings);
-
-                // Recursively resolve the new node
+                
                 if (resolve(newNode)) {
-                    if (newGoals.isEmpty() && query.body.ts.get(0).args.get(0).kind == TKind.IDENT) {
-                        previousUnifications.add(clause);
-                    }
-                    this.bindings.putAll(newNode.substitution);
-                    return true;
-                }
-            } else {
-                if (tryAlternativeUnification(currentGoal, clause, node.substitution)) {
-                    return true;
+                    success = true;
+
+                    break;
                 }
             }
         }
+
         visited.remove(currentGoal.toString());
-        return false;
+        return success;
     }
 
     private boolean tryAlternativeUnification(FPTerm goal, FPClause clause, Map<String, FPTerm> nodeBindings) {
