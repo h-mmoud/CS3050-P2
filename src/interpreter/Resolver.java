@@ -98,7 +98,8 @@ public class Resolver {
 
         boolean resolution = resolve(resolutionRoot, bindings);
         if (resolution) {
-            if (!this.bindings.isEmpty()) {
+            FPTerm queryArg = this.query.body.ts.get(0).args.get(0);
+            if (queryArg.kind == TKind.IDENT) {
                 String formatted = this.bindings.entrySet().stream()
                     .map(entry -> entry.getKey() + " = " + entry.getValue())
                     .collect(Collectors.joining(", "));
@@ -218,9 +219,6 @@ private boolean resolve(Node node, Map<String, FPTerm> bindings) {
         }
         theta.clear();
         theta.putAll(thetaCopy);
-        System.out.println("Unification successful: " + theta.toString());
-
-
         return true;
     }
 
