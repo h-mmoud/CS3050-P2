@@ -51,35 +51,24 @@ public class Resolver {
         this.clauses = new LinkedHashSet<>();
         this.query = null;
 
+        // static variables to store previous query and unifications for backtracking
         Resolver.previousQuery = null;
         Resolver.previousUnifications = new HashSet<>();
-        // Extract goals from the query
-
-    //     if (query.head != null) {
-    //         System.out.println("Not a query: " + query.toString());
-    //         return;
-    //     }
-
-    //     ArrayList<FPTerm> goal = query.body != null ? query.body.ts : new ArrayList<>();
-    //     System.out.println("Goal: " + goal.toString());
-
-    //     this.resolutionRoot = new Node(goal, null, new HashMap<>());
     }
     
-    // 
+    // depth-first search to resolve the query
     public boolean resolve(FPClause query) {
         ArrayList<FPTerm> goals;
+        this.visited.clear(); // clear the visted nodes each time we resolve a new query
 
-;
-
-        Map<String, FPTerm> bindings = new HashMap<>();        
-        this.visited.clear();
-
+        // Check if the query is a query
         if (query.head != null) {
             System.out.println("Not a query: " + query.toString());
             return false;
         }
 
+        // If attempting resolve the same query, find a different result
+        // If there is no previous query, return false
         if (query.body == null || query.body.ts.isEmpty()) {
             try {
                 this.query = previousQuery;
@@ -90,58 +79,70 @@ public class Resolver {
             }
         } else {
             goals = query.body.ts;
-            // System.out.println("Goal: " + goal.toString());
             this.query = query;
             Resolver.previousQuery = query;
         }
-        Node resolutionRoot = new Node(goals, null, new HashMap<>());
 
-        boolean resolution = resolve(resolutionRoot, bindings);
+        // Create the root node for the resolution tree
+        Node resolutionRoot = new Node(goals, null, new HashMap<>());
+        
+        boolean resolution = resolve(resolutionRoot);
+
+        // Print the bindings or yes/no depending on the query.
         if (resolution) {
             FPTerm queryArg = this.query.body.ts.get(0).args.get(0);
             if (queryArg.kind == TKind.IDENT) {
-                String formatted = this.bindings.entrySet().stream()
+                // Format the substitutions
+                String output = this.bindings.entrySet().stream() 
                     .map(entry -> entry.getKey() + " = " + entry.getValue())
                     .collect(Collectors.joining(", "));
-                System.out.println(formatted);
+                System.out.println(output);
             } else {
                 System.out.println("yes");
             }
         } else {
             System.out.println("no");
         }
-
         return resolution;
     }
 
-    // Depth-first search to resolve the query
-private boolean resolve(Node node, Map<String, FPTerm> bindings) {
+    // Recursively resolve the query
+    private boolean resolve(Node node) {
         ArrayList<FPTerm> goals = node.goals;
 
-        // Check if the goal is empty
+        // Check if the goal is empty (Base case)
         if (goals.isEmpty()) {
             this.bindings = node.substitution;
             return true;
         }
 
-        // Get the first goal
+        // If the goal is the primitive predicate write, print the terms that succeeds
+        if (goals.get(0).name.equals("write")) {
+            write(node, goals.get(0), node.substitution);
+
+            // Remove the goal so it doesn't get resolved
+            goals.remove(0);
+        }
+
+        // Start with the first goal
         FPTerm currentGoal = goals.get(0);
 
+        // if the goal has been visited before, return false to avoid infinite loops
         if (visited.containsKey(currentGoal.toString()) && node.parent != null) {
             return false;
         }
         visited.put(currentGoal.toString(), currentGoal);
-        
-        // System.out.println("Resolving goal: " + currentGoal.toString());
+
+        // Add the clauses for the current goal to the linked hashset of clauses (allows for ordering and no duplicates)
         clauses.addAll(kb.getClauses(currentGoal.name));
 
+        // If there are no clauses for the goal in the knowledge base, return false
         if (clauses.isEmpty()) {
             return false;
         }
 
-        // Try to resolve the goal with the clauses
+        // Depth first search to resolve the goal
         for (FPClause clause : clauses) {
-            
             if (previousUnifications.contains(clause)) {
                 continue;
             }
@@ -159,18 +160,19 @@ private boolean resolve(Node node, Map<String, FPTerm> bindings) {
                     newGoals.addAll(0, clause.body.ts);
                 }
 
+                // Create a new node with the new goals and bindings
                 Node newNode = new Node(newGoals, node, newBindings);
 
                 // Recursively resolve the new node
-                if (resolve(newNode, newBindings)) { // TODO: 
+                if (resolve(newNode)) {
                     if (newGoals.isEmpty() && query.body.ts.get(0).args.get(0).kind == TKind.IDENT) {
                         previousUnifications.add(clause);
                     }
+                    this.bindings.putAll(newNode.substitution);
                     return true;
                 }
             } else {
                 if (tryAlternativeUnification(currentGoal, clause, node.substitution)) {
-                    this.bindings = node.substitution;
                     return true;
                 }
             }
@@ -179,14 +181,13 @@ private boolean resolve(Node node, Map<String, FPTerm> bindings) {
         return false;
     }
 
-    private boolean tryAlternativeUnification(FPTerm goal, FPClause clause, Map<String, FPTerm> originalBindings) {
-        for (String var : originalBindings.keySet()) {
-            Map<String, FPTerm> tempBindings = new HashMap<>(originalBindings);
+    private boolean tryAlternativeUnification(FPTerm goal, FPClause clause, Map<String, FPTerm> nodeBindings) {
+        for (String var : nodeBindings.keySet()) {
+            Map<String, FPTerm> tempBindings = new HashMap<>(nodeBindings); 
             tempBindings.remove(var);  // Remove one binding
 
             if (unifyGoalWithHead(goal, clause.head, tempBindings)) {
-                originalBindings.clear();
-                originalBindings.putAll(tempBindings);
+                nodeBindings.putAll(tempBindings);
                 return true;
             }
         }
@@ -207,19 +208,35 @@ private boolean resolve(Node node, Map<String, FPTerm> bindings) {
             return false;
         }
 
-        Map<String, FPTerm> thetaCopy = new HashMap<>(theta);
-
         // Unify each corresponding argument
         for (int i = 0; i < goalArity; i++) {
             FPTerm goalArg = goal.args.get(i);
             FPTerm headParam = head.params.get(i);
-            if (!Unifier.unify(goalArg, headParam, thetaCopy)) {
+            if (!Unifier.unify(goalArg, headParam, theta)) {
                 return false;
             }
         }
-        theta.clear();
-        theta.putAll(thetaCopy);
         return true;
     }
 
+    private void write(Node node, FPTerm goal, Map<String, FPTerm> theta) {
+        Node parentNode = node.parent;
+        FPTerm writeGoal = null;
+        
+        if (parentNode != null) {
+            ArrayList<FPTerm> parentGoals = parentNode.goals;
+
+            for (FPTerm subGoal : parentGoals) { // Write all the matching 
+                if (subGoal.name.equals("write")) {
+                    break;
+                }
+               writeGoal = subGoal;
+            }
+
+            for (FPClause predicate : kb.getClauses(writeGoal.name)) {
+                System.out.println(predicate.head.params.get(0));
+            }
+            System.out.println();
+        }
+    }
 }

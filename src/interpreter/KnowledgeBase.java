@@ -27,6 +27,10 @@ public class KnowledgeBase {
         return knowledgeBase.getOrDefault(functor, new ArrayList<>());
     }
 
+    public ArrayList<FPClause> getAllClauses() {
+        return knowledgeBase.values().stream().collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll);
+    }
+
     public String toString() {
         // System.out.println("KnowledgeBase.toString()");
         StringBuilder sb = new StringBuilder();
