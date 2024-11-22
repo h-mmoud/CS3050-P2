@@ -118,10 +118,18 @@ public class Resolver {
         FPTerm currentGoal = goals.get(0);
 
         // Handle write primitive first
+        ArrayList<FPTerm> restGoals = new ArrayList<>(goals.subList(1, goals.size()));
+
+        // Handle write/1 primitive
+        System.out.println("Current goal: " + currentGoal);
         if (currentGoal.name.equals("write")) {
-            write(node, currentGoal, node.substitution);
-            goals.remove(0);
-            return resolve(node);
+            // Get term to print and apply substitutions
+            // FPTerm predicate = currentGoal.args.get(0);
+            // FPTerm termToPrint = node.substitution.get(predicate.name);
+            // System.out.println(termToPrint);
+
+            write(node, currentGoal, visited);
+            return resolve(new Node(restGoals, node, node.substitution));
         }
 
         if (visited.containsKey(currentGoal.toString()) && node.parent != null) {
@@ -166,6 +174,10 @@ public class Resolver {
                 if (resolve(newNode)) {
                     success = true;
 
+                    if (newGoals.isEmpty() && query.body.ts.get(0).args.get(0).kind == TKind.IDENT) {
+                        previousUnifications.add(clause);
+                    }
+
                     break;
                 }
             }
@@ -173,19 +185,6 @@ public class Resolver {
 
         visited.remove(currentGoal.toString());
         return success;
-    }
-
-    private boolean tryAlternativeUnification(FPTerm goal, FPClause clause, Map<String, FPTerm> nodeBindings) {
-        for (String var : nodeBindings.keySet()) {
-            Map<String, FPTerm> tempBindings = new HashMap<>(nodeBindings); 
-            tempBindings.remove(var);  // Remove one binding
-
-            if (unifyGoalWithHead(goal, clause.head, tempBindings)) {
-                nodeBindings.putAll(tempBindings);
-                return true;
-            }
-        }
-        return false;
     }
 
     // Generate a unique key for the query
