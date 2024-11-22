@@ -42,14 +42,14 @@ rm -rf bin/*
 # echo "Working directory: $(pwd)"
 
 # First compile parser.ast package
-javac -d bin parser/ast/*.java
+javac -d bin src/parser/ast/*.java
 
 # echo "Compiling parser.ast package..."
-javac -d bin -cp bin parser/*.java
+javac -d bin -cp bin src/parser/*.java
 
 # Then compile interpreter package
 # echo "Compiling interpreter package..."
-javac -d bin -cp bin interpreter/*.java
+javac -d bin -cp bin src/interpreter/*.java
 
 # # Finally compile tests
 # echo "Compiling tests..."
