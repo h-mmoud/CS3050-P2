@@ -17,6 +17,7 @@ class Node {
     public ArrayList<FPTerm> goals;
     public Node parent;
     public Map<String, FPTerm> substitution;
+    public boolean hasCut;
 
     public ArrayList<Node> children;
     public Map<String, FPTerm> theta;
@@ -25,6 +26,7 @@ class Node {
         this.goals = goals;
         this.parent = parent;
         this.substitution = substitution;
+        this.hasCut = parent != null ? parent.hasCut : false;
     }
 }
 
@@ -160,6 +162,12 @@ public class Resolver {
             currentGoal = goals.get(0);
         }
 
+        if (currentGoal.name.equals("cut")) {
+            node.hasCut = true;
+            goals.remove(0);
+            resolve(node);
+        }
+
         clauses.addAll(kb.getClauses(currentGoal.name));
 
         for (FPClause clause : kb.getClauses(currentGoal.name)) {
@@ -190,7 +198,9 @@ public class Resolver {
                     previousUnifications.add(clause);
                 }
                 return true;
-            } 
+            } else if (child.hasCut) {
+                return false;
+            }
             printTrace("Redo", currentGoal, node.substitution);
         }
         
