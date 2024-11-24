@@ -7,6 +7,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.Objects;
 
 import parser.ast.FPClause;
 import parser.ast.FPHead;
@@ -30,6 +31,24 @@ class Node {
         this.hasCut = parent != null ? parent.hasCut : false;
         this.hasWrite = false;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != getClass()) return false;
+        
+        Node node = (Node) o;
+        return Objects.equals(goals, node.goals) &&
+            // Avoid parent comparison to prevent infinite recursion
+            Objects.equals(substitution, node.substitution) &&
+            Objects.equals(hasCut, node.hasCut);
+    }
+
+    @Override
+    public int hashCode() {
+        // Don't include parent in hashCode to prevent infinite recursion
+        return Objects.hash(goals, substitution, hasCut);
+    }
 }
 
 public class Resolver {
@@ -38,7 +57,7 @@ public class Resolver {
     private final boolean traceEnabled;
     private StringBuilder output;
 
-    private Map<String, FPTerm> visited;
+    private Set<Node> visited;
     private Map<String, FPTerm> bindings;
     private String orignalQueryName;
     private LinkedHashSet<FPClause> clauses;
@@ -57,7 +76,7 @@ public class Resolver {
         // this.query = query;
         this.kb = kb;
         this.traceEnabled = trace;
-        this.visited = new HashMap<>(); // Visited nodes
+        this.visited = new HashSet<>(); // Visited nodes
         this.bindings = new HashMap<>(); // Bindings for the current resolution
         this.clauses = new LinkedHashSet<>();
         this.output = new StringBuilder();
@@ -80,11 +99,11 @@ public class Resolver {
     ArrayList<FPTerm> resolvedArgs = new ArrayList<>();
     if (goal.args != null) {
         for (FPTerm arg : goal.args) {
-;
             if (arg.kind == TKind.IDENT && substitution.containsKey(arg.name)) {
                 resolvedArgs.add(substitution.get(arg.name));
-            } else {
-                return;
+            } else if (arg.kind == TKind.CONST && substitution.containsKey(arg.name)) {
+                // System.out.println();
+                resolvedArgs.add(arg);
             }
         }
     }
@@ -97,7 +116,8 @@ public class Resolver {
     
     public boolean resolve(FPClause query) {
         ArrayList<FPTerm> goals;
-        this.visited.clear(); // clear the visted nodes each time we resolve a new query
+        this.output = new StringBuilder();
+        // this.visited.clear(); // clear the visted nodes each time we resolve a new query
 
         // Check if the query is a query
         if (query.head != null) {
@@ -128,7 +148,8 @@ public class Resolver {
         // Print the bindings or yes/no depending on the query.
     if (resolution) {
         FPTerm queryArg = this.query.body.ts.get(0).args.get(0);
-        if (queryArg.kind == TKind.IDENT) {
+        if (queryArg.kind == TKind.IDENT && this.bindings.containsKey(queryArg.name)) {
+            // this.output.append("\n\n");
             // Format the substitutions
             String substitutions = this.bindings.entrySet().stream() 
                 .map(entry -> entry.getKey() + " = " + entry.getValue())
@@ -151,7 +172,6 @@ public class Resolver {
 
         if (goals.isEmpty()) {
             this.bindings = node.substitution;
-
             return true;
         }
 
@@ -166,13 +186,29 @@ public class Resolver {
         if (currentGoal.name.equals("cut")) {
             node.hasCut = true;
             goals.remove(0);
-            resolve(node);
+            return resolve(node);
         }
 
-        if (visited.containsKey(currentGoal.toString()) && node.parent != null) {
-            return false;
-        }
-        visited.put(currentGoal.toString(), currentGoal);
+        // if (visited.containsKey(currentGoal.toString()) && node.parent != null) {
+        //     printTrace("Redo", currentGoal, node.substitution);
+        //     return false;
+        // }
+        // visited.put(currentGoal.toString(), node.substitution);
+
+        // if (kb.getFact(currentGoal) != null) {
+
+        //     FPClause fact = kb.getFact(currentGoal);
+        //     UnificationResult unificationResult = tryUnify(currentGoal, fact, node);
+
+        //     if (!unificationResult.success) {
+        //         return false;
+        //     }
+
+        //     ArrayList<FPTerm> newGoals = new ArrayList<>(goals);
+        //     newGoals.remove(0);
+        //     Node child = new Node(newGoals, node, unificationResult.bindings);
+        //     return resolve(child);
+        // }
 
         clauses.addAll(kb.getClauses(currentGoal.name));
 
@@ -180,13 +216,13 @@ public class Resolver {
             
             UnificationResult unificationResult = tryUnify(currentGoal, clause, node);
             if (!unificationResult.success) {
-                printTrace("Fail", currentGoal, node.substitution);
+                // printTrace("Fail", currentGoal, node.substitution);
                 continue;
             }
-            printTrace("Call", currentGoal, unificationResult.bindings);
+            // printTrace("Call", currentGoal, unificationResult.bindings);
 
             if (previousUnifications.contains(clause)) {
-                printTrace("Call", currentGoal, node.substitution);
+                // printTrace("Call", currentGoal, node.substitution);
                 continue;
             }
 
@@ -207,10 +243,10 @@ public class Resolver {
             } else if (child.hasCut) {
                 return false;
             }
-            printTrace("Redo", currentGoal, node.substitution);
+            // printTrace("Redo", currentGoal, node.substitution);
         }
         
-        visited.remove(currentGoal.toString());
+        visited.remove(node);
         return false;
     }
 
@@ -264,9 +300,8 @@ public class Resolver {
             // for (FPClause predicate : kb.getClauses(writeGoal.name)) {
             FPClause predicate = kb.getClauses(writeGoal.name).get(0);    
             printTrace("Call", goal, node.substitution);
-            System.out.println(predicate.head.params.get(0));
-            // }
-            System.out.println();
+            this.output.append(node.substitution.get(goal.args.get(0).name) + "\n");
+            // this.output.append("\n");
             depth--;
         }
     }
@@ -278,21 +313,18 @@ public class Resolver {
         Node currentNode = node;
         Map<String, FPTerm> newBindings = new HashMap<>(node.substitution);
         if (unifyGoalWithHead(goal, clause.head, newBindings)) {
+            if (visited.contains(node)){
+                printTrace("Redo", goal, newBindings);
+            } else {
+                visited.add(node);
+                printTrace("Call", goal, newBindings);
+            }
+            // System.out.println(visited.containsKey(goal.toString()));
+            // printTrace("Call", goal, newBindings);
             return new UnificationResult(true, newBindings);
         }
-        // printTrace("Fail", goal, newBindings);
-        // Try alternative bindings if direct unification fails
-        // currentNode = node.parent;
+        printTrace("Fail", goal, newBindings);
 
-        // for (String var : node.substitution.keySet()) {
-        //     newBindings = new HashMap<>(node.substitution);
-        //     newBindings.remove(var);
-        //     if (unifyGoalWithHead(goal, clause.head, newBindings)) {
-        //         printTrace("Redo", node.parent.goals.get(0), newBindings);
-        //         return new UnificationResult(true, newBindings);
-        //     }
-        // }
-        
         return new UnificationResult(false, null);
     }
 }
