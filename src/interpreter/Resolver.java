@@ -101,9 +101,10 @@ public class Resolver {
         for (FPTerm arg : goal.args) {
             if (arg.kind == TKind.IDENT && substitution.containsKey(arg.name)) {
                 resolvedArgs.add(substitution.get(arg.name));
-            } else if (arg.kind == TKind.CONST && substitution.containsKey(arg.name)) {
-                // System.out.println();
+            } else if (arg.kind == TKind.CONST && substitution.isEmpty()) {
                 resolvedArgs.add(arg);
+            } else {
+                return;
             }
         }
     }
@@ -141,26 +142,32 @@ public class Resolver {
         }
 
         // Create the root node for the resolution tree
+        // Create the root node for the resolution tree
         Node resolutionRoot = new Node(goals, null, new HashMap<>());
         
         boolean resolution = resolve(resolutionRoot);
-
-        // Print the bindings or yes/no depending on the query.
-    if (resolution) {
-        FPTerm queryArg = this.query.body.ts.get(0).args.get(0);
-        if (queryArg.kind == TKind.IDENT && this.bindings.containsKey(queryArg.name)) {
-            // this.output.append("\n\n");
-            // Format the substitutions
-            String substitutions = this.bindings.entrySet().stream() 
-                .map(entry -> entry.getKey() + " = " + entry.getValue())
-                .collect(Collectors.joining(", "));
-            this.output.append(substitutions);
+        
+        // Print result based on query type and resolution success
+        if (resolution) {
+            // Check if query contains any variables
+            boolean hasVariables = this.query.body.ts.get(0).args.stream()
+                .anyMatch(arg -> arg.kind == TKind.IDENT);
+            
+            if (hasVariables) {
+                // Filter and format only variable substitutions
+                String substitutions = this.bindings.entrySet().stream()
+                    .filter(entry -> entry.getKey().matches("[A-Z].*")) // Prolog variables start with uppercase
+                    .map(entry -> entry.getKey() + " = " + entry.getValue())
+                    .collect(Collectors.joining(", "));
+                this.output.append(substitutions);
+            } else {
+                // Query has only constants
+                this.output.append("yes");
+            }
         } else {
-            this.output.append("yes");
+            this.output.append("no");
         }
-    } else {
-        this.output.append("no");
-    }
+        
         System.out.println(this.output.toString());
         return resolution;
     }
@@ -195,25 +202,29 @@ public class Resolver {
         // }
         // visited.put(currentGoal.toString(), node.substitution);
 
-        // if (kb.getFact(currentGoal) != null) {
+        if (kb.getFact(currentGoal) != null) {
+            FPClause fact = kb.getFact(currentGoal);
+            UnificationResult unificationResult = tryUnify(currentGoal, fact, node);
 
-        //     FPClause fact = kb.getFact(currentGoal);
-        //     UnificationResult unificationResult = tryUnify(currentGoal, fact, node);
+            if (!unificationResult.success) {
+                return false;
+            }
 
-        //     if (!unificationResult.success) {
-        //         return false;
-        //     }
+            ArrayList<FPTerm> newGoals = new ArrayList<>(goals);
+            newGoals.remove(0);
+            Node child = new Node(newGoals, node, unificationResult.bindings);
+            return resolve(child);
+        }
 
-        //     ArrayList<FPTerm> newGoals = new ArrayList<>(goals);
-        //     newGoals.remove(0);
-        //     Node child = new Node(newGoals, node, unificationResult.bindings);
-        //     return resolve(child);
-        // }
+        // System.out.println(currentGoal.name);
 
         clauses.addAll(kb.getClauses(currentGoal.name));
-
+        // System.out.println(kb.getClauses(currentGoal.name));
         for (FPClause clause : kb.getClauses(currentGoal.name)) {
-            
+            if (previousUnifications.contains(clause)) {
+                continue;
+            }
+
             UnificationResult unificationResult = tryUnify(currentGoal, clause, node);
             if (!unificationResult.success) {
                 // printTrace("Fail", currentGoal, node.substitution);
@@ -221,10 +232,6 @@ public class Resolver {
             }
             // printTrace("Call", currentGoal, unificationResult.bindings);
 
-            if (previousUnifications.contains(clause)) {
-                // printTrace("Call", currentGoal, node.substitution);
-                continue;
-            }
 
             ArrayList<FPTerm> newGoals = new ArrayList<>(goals);
             newGoals.remove(0);
@@ -277,6 +284,7 @@ public class Resolver {
                 return false;
             }
         }
+        theta.clear();
         theta.putAll(newTheta);
 
         // printTrace("Call", goal, theta);
@@ -310,6 +318,7 @@ public class Resolver {
 
     private UnificationResult tryUnify(FPTerm goal, FPClause clause, Node node) {
         // Try direct unification first
+        // System.out.println("Unifying: " + goal.toString() + " with " + clause.toString());
         Node currentNode = node;
         Map<String, FPTerm> newBindings = new HashMap<>(node.substitution);
         if (unifyGoalWithHead(goal, clause.head, newBindings)) {
@@ -323,7 +332,7 @@ public class Resolver {
             // printTrace("Call", goal, newBindings);
             return new UnificationResult(true, newBindings);
         }
-        printTrace("Fail", goal, newBindings);
+        printTrace("Fail", goal, node.substitution);
 
         return new UnificationResult(false, null);
     }
