@@ -5,5 +5,5 @@ accepted(cynthia, lawrence).
 
 betrothed(X, Y) :- proposed(X, Y), write(X), accepted(Y, X).
 
-?- accepted(X,Y).
+?- betrothed(X,Y).
 
